@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./apps/frontend/.next:/usr/share/nginx/html:ro
+      - ./apps/frontend/public:/usr/share/nginx/html/public:ro
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EMAIL_SECRET=${JWT_EMAIL_SECRET}
+      - JWT_RESET_SECRET=${JWT_RESET_SECRET}
+      - APP_URL=${APP_URL}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER}
+      - STORAGE_LOCAL_PATH=${STORAGE_LOCAL_PATH}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - BUILD_TIMEOUT=${BUILD_TIMEOUT}
+      - BUILD_MEMORY_LIMIT=${BUILD_MEMORY_LIMIT}
+      - BUILD_CPU_LIMIT=${BUILD_CPU_LIMIT}
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: archon
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+
+volumes:
+  db_data:
